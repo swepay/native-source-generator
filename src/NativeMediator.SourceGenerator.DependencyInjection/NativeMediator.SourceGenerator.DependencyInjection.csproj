@@ -1,0 +1,13 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <PackageId>NativeMediator.SourceGenerator.DependencyInjection</PackageId>
+    <Description>AOT-first source generator for NativeMediator handler registration. Generates constructors and handler registrations without reflection.</Description>
+    <Version>1.0.0</Version>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Native.SourceGenerator.DependencyInjection\Native.SourceGenerator.DependencyInjection.csproj" PrivateAssets="all" />
+  </ItemGroup>
+
+</Project>

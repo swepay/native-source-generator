@@ -1,0 +1,9 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <PackageId>Native.SourceGenerator.Configuration</PackageId>
+    <Description>AOT-first source generator for configuration binding from environment variables. No ConfigurationBinder, no reflection.</Description>
+    <Version>1.0.0</Version>
+  </PropertyGroup>
+
+</Project>

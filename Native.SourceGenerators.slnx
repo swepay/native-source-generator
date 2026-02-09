@@ -1,0 +1,14 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/Native.SourceGenerator.DependencyInjection/Native.SourceGenerator.DependencyInjection.csproj" />
+    <Project Path="src/Native.SourceGenerator.Configuration/Native.SourceGenerator.Configuration.csproj" />
+    <Project Path="src/NativeMediator.SourceGenerator.DependencyInjection/NativeMediator.SourceGenerator.DependencyInjection.csproj" />
+    <Project Path="src/NativeFluentValidator.SourceGenerator.DependencyInjection/NativeFluentValidator.SourceGenerator.DependencyInjection.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/Native.SourceGenerator.DependencyInjection.Tests/Native.SourceGenerator.DependencyInjection.Tests.csproj" />
+    <Project Path="tests/Native.SourceGenerator.Configuration.Tests/Native.SourceGenerator.Configuration.Tests.csproj" />
+    <Project Path="tests/NativeMediator.SourceGenerator.DependencyInjection.Tests/NativeMediator.SourceGenerator.DependencyInjection.Tests.csproj" />
+    <Project Path="tests/NativeFluentValidator.SourceGenerator.DependencyInjection.Tests/NativeFluentValidator.SourceGenerator.DependencyInjection.Tests.csproj" />
+  </Folder>
+</Solution>
