@@ -42,6 +42,8 @@ README.md
 - Always pass CancellationToken through all async calls.
 - No sync-over-async (no .Result/.Wait).
 - No Task.Run inside request handlers.
+- Gerar README.md para cada biblioteca
+- Sempre atualizar documentação do README.md após mudanças que impactem seu funcionamento
 
 ## Estilo
 
@@ -65,11 +67,11 @@ Todo erro deve gerar:
 - DiagnosticDescriptor
 - ID consistente (CONFIGxxx, DIxxx, MEDxxx)
 
-## Commands (edit to match your codebase)
+## Sempre execute ao finalizar uma alteração de código
 
 - Build: `dotnet build`
 - Test: `dotnet test`
-- Run API: `dotnet run --project src/Api`
+- Pack: `dotnet pack src/Native.csproj`
 - Format: `dotnet format`
 
 ## Output format

@@ -3,7 +3,7 @@
   <PropertyGroup>
     <PackageId>Native.SourceGenerator.Configuration</PackageId>
     <Description>AOT-first source generator for configuration binding from environment variables. No ConfigurationBinder, no reflection.</Description>
-    <Version>1.0.1</Version>
+    <Version>1.0.2</Version>
   </PropertyGroup>
 
 </Project>
