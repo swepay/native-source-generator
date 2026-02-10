@@ -163,45 +163,13 @@ jobs:
                   dotnet-version: "10.0.x"
                   dotnet-quality: "preview"
 
-            - name: Create AOT test project
-              run: |
-                  mkdir -p aot-test
-                  cat > aot-test/aot-test.csproj << 'EOF'
-                  <Project Sdk="Microsoft.NET.Sdk">
-                    <PropertyGroup>
-                      <OutputType>Exe</OutputType>
-                      <TargetFramework>net10.0</TargetFramework>
-                      <PublishAot>true</PublishAot>
-                      <IsAotCompatible>true</IsAotCompatible>
-                    </PropertyGroup>
-                    <ItemGroup>
-                      <ProjectReference Include="../src/Native.SourceGenerator.DependencyInjection/Native.SourceGenerator.DependencyInjection.csproj" OutputItemType="Analyzer" ReferenceOutputAssembly="false" />
-                      <ProjectReference Include="../src/Native.SourceGenerator.Configuration/Native.SourceGenerator.Configuration.csproj" OutputItemType="Analyzer" ReferenceOutputAssembly="false" />
-                    </ItemGroup>
-                  </Project>
-                  EOF
-
-                  cat > aot-test/Program.cs << 'EOF'
-                  using Native.SourceGenerator.DependencyInjection;
-                  using Native.SourceGenerator.Configuration;
-
-                  var service = new TestService();
-                  Console.WriteLine("AOT Compatibility Test Passed!");
-
-                  public interface ILogger { }
-                  public class ConsoleLogger : ILogger { }
-
-                  [Register(typeof(ILogger), ServiceLifetime.Singleton)]
-                  public partial class TestService : ILogger
-                  {
-                  }
-
-                  public partial class ConfigService
-                  {
-                      [EnvironmentConfig("TEST_VAR", Required = false, DefaultValue = "test")]
-                      private readonly string _testVar = "";
-                  }
-                  EOF
+            - name: Cache NuGet packages
+              uses: actions/cache@v4
+              with:
+                  path: ${{ env.NUGET_PACKAGES }}
+                  key: ${{ runner.os }}-nuget-${{ hashFiles('**/Directory.Packages.props') }}
+                  restore-keys: |
+                      ${{ runner.os }}-nuget-
 
             - name: Verify AOT Compatibility
               run: |
