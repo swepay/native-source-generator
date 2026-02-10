@@ -19,7 +19,12 @@
     <RepositoryUrl>https://github.com/swepay/native-source-generator</RepositoryUrl>
     <RepositoryType>git</RepositoryType>
     <PackageTags>source-generator;aot;native-aot;dependency-injection;.net10</PackageTags>
+    <PackageIcon>native-source-generator.png</PackageIcon>
   </PropertyGroup>
+
+  <ItemGroup>
+    <None Include="native-source-generator.png" Pack="true" PackagePath="\" />
+  </ItemGroup>
 
   <PropertyGroup>
     <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
