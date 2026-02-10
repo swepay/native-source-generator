@@ -8,6 +8,11 @@
     <PackageVersion Include="Microsoft.CodeAnalysis.CSharp" Version="4.12.0" />
     <PackageVersion Include="Microsoft.CodeAnalysis.Analyzers" Version="3.3.4" />
 
+    <!-- Microsoft.Extensions for AOT test -->
+    <PackageVersion Include="Microsoft.Extensions.DependencyInjection" Version="10.0.0-preview.1.25080.5" />
+    <PackageVersion Include="Microsoft.Extensions.Configuration" Version="10.0.0-preview.1.25080.5" />
+    <PackageVersion Include="Microsoft.Extensions.Configuration.EnvironmentVariables" Version="10.0.0-preview.1.25080.5" />
+
     <!-- Testing - Using 1.1.2 requires Roslyn 4.x compatible workspaces -->
     <PackageVersion Include="Microsoft.NET.Test.Sdk" Version="17.12.0" />
     <PackageVersion Include="Microsoft.CodeAnalysis.CSharp.SourceGenerators.Testing" Version="1.1.2" />

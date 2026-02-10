@@ -57,7 +57,13 @@ internal static class ConfigurationEmitter
         var bodyIndent = memberIndent + "    ";
 
         sb.Append(memberIndent);
-        sb.AppendLine("private void __InjectConfiguration()");
+        sb.AppendLine("/// <summary>");
+        sb.Append(memberIndent);
+        sb.AppendLine("/// Injects configuration values from the provided IConfiguration instance.");
+        sb.Append(memberIndent);
+        sb.AppendLine("/// </summary>");
+        sb.Append(memberIndent);
+        sb.AppendLine("public void __InjectConfiguration(global::Microsoft.Extensions.Configuration.IConfiguration configuration)");
         sb.Append(memberIndent);
         sb.AppendLine("{");
 
@@ -72,7 +78,7 @@ internal static class ConfigurationEmitter
 
     private static void EmitFieldAssignment(StringBuilder sb, ConfigurationFieldInfo field, string indent)
     {
-        var envVarAccess = $"global::System.Environment.GetEnvironmentVariable(\"{field.EnvironmentVariableName}\")";
+        var configAccess = $"configuration[\"{field.EnvironmentVariableName}\"]";
 
         // Determine if the type is nullable
         var isNullableType = field.FullyQualifiedFieldType.EndsWith("?");
@@ -87,50 +93,50 @@ internal static class ConfigurationEmitter
         // Handle different types
         if (baseType is "string" or "global::System.String")
         {
-            EmitStringAssignment(sb, field, indent, envVarAccess);
+            EmitStringAssignment(sb, field, indent, configAccess);
         }
         else if (baseType is "int" or "global::System.Int32")
         {
-            EmitParsableAssignment(sb, field, indent, envVarAccess, "int", "0");
+            EmitParsableAssignment(sb, field, indent, configAccess, "int", "0");
         }
         else if (baseType is "long" or "global::System.Int64")
         {
-            EmitParsableAssignment(sb, field, indent, envVarAccess, "long", "0L");
+            EmitParsableAssignment(sb, field, indent, configAccess, "long", "0L");
         }
         else if (baseType is "bool" or "global::System.Boolean")
         {
-            EmitParsableAssignment(sb, field, indent, envVarAccess, "bool", "false");
+            EmitParsableAssignment(sb, field, indent, configAccess, "bool", "false");
         }
         else if (baseType is "double" or "global::System.Double")
         {
-            EmitParsableAssignment(sb, field, indent, envVarAccess, "double", "0.0");
+            EmitParsableAssignment(sb, field, indent, configAccess, "double", "0.0");
         }
         else if (baseType is "decimal" or "global::System.Decimal")
         {
-            EmitParsableAssignment(sb, field, indent, envVarAccess, "decimal", "0m");
+            EmitParsableAssignment(sb, field, indent, configAccess, "decimal", "0m");
         }
         else if (baseType is "global::System.TimeSpan")
         {
-            EmitTimeSpanAssignment(sb, field, indent, envVarAccess);
+            EmitTimeSpanAssignment(sb, field, indent, configAccess);
         }
         else if (baseType is "global::System.Uri")
         {
-            EmitUriAssignment(sb, field, indent, envVarAccess);
+            EmitUriAssignment(sb, field, indent, configAccess);
         }
         else
         {
             // Fallback to string for unknown types
-            EmitStringAssignment(sb, field, indent, envVarAccess);
+            EmitStringAssignment(sb, field, indent, configAccess);
         }
 
         sb.AppendLine();
     }
 
-    private static void EmitStringAssignment(StringBuilder sb, ConfigurationFieldInfo field, string indent, string envVarAccess)
+    private static void EmitStringAssignment(StringBuilder sb, ConfigurationFieldInfo field, string indent, string configAccess)
     {
         sb.Append(indent);
         sb.Append("    ");
-        sb.Append(envVarAccess);
+        sb.Append(configAccess);
 
         if (field.IsRequired && field.DefaultValue is null)
         {
@@ -156,15 +162,16 @@ internal static class ConfigurationEmitter
         StringBuilder sb,
         ConfigurationFieldInfo field,
         string indent,
-        string envVarAccess,
+        string configAccess,
         string typeName,
         string defaultLiteral)
     {
-        // var __envValue = Environment.GetEnvironmentVariable("NAME");
-        // __envValue is not null ? type.Parse(__envValue) : default/throw
+        // configuration["NAME"] is { Length: > 0 } __fieldValue
+        //     ? type.Parse(__fieldValue)
+        //     : default/throw
         sb.Append(indent);
         sb.Append("    ");
-        sb.Append(envVarAccess);
+        sb.Append(configAccess);
         sb.Append(" is { Length: > 0 } __");
         sb.Append(field.FieldName);
         sb.AppendLine("Value");
@@ -197,11 +204,11 @@ internal static class ConfigurationEmitter
         }
     }
 
-    private static void EmitTimeSpanAssignment(StringBuilder sb, ConfigurationFieldInfo field, string indent, string envVarAccess)
+    private static void EmitTimeSpanAssignment(StringBuilder sb, ConfigurationFieldInfo field, string indent, string configAccess)
     {
         sb.Append(indent);
         sb.Append("    ");
-        sb.Append(envVarAccess);
+        sb.Append(configAccess);
         sb.Append(" is { Length: > 0 } __");
         sb.Append(field.FieldName);
         sb.AppendLine("Value");
@@ -230,11 +237,11 @@ internal static class ConfigurationEmitter
         }
     }
 
-    private static void EmitUriAssignment(StringBuilder sb, ConfigurationFieldInfo field, string indent, string envVarAccess)
+    private static void EmitUriAssignment(StringBuilder sb, ConfigurationFieldInfo field, string indent, string configAccess)
     {
         sb.Append(indent);
         sb.Append("    ");
-        sb.Append(envVarAccess);
+        sb.Append(configAccess);
         sb.Append(" is { Length: > 0 } __");
         sb.Append(field.FieldName);
         sb.AppendLine("Value");

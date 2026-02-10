@@ -172,6 +172,33 @@ public class ConfigurationGeneratorTests
         generatedCode.ShouldContain("_debugMode");
     }
 
+    [Fact]
+    public void Generator_GeneratesPublicMethodWithIConfiguration()
+    {
+        var source = """
+            using Native.SourceGenerator.Configuration;
+
+            namespace TestNamespace;
+
+            public partial class Settings
+            {
+                [EnvironmentConfig("VALUE")]
+                private readonly string _value;
+            }
+            """;
+
+        var (compilation, diagnostics) = RunGenerator(source);
+
+        diagnostics.ShouldBeEmpty();
+
+        var generatedTrees = compilation.SyntaxTrees.ToList();
+        var generatedCode = generatedTrees[^1].ToString();
+
+        generatedCode.ShouldContain("public void __InjectConfiguration");
+        generatedCode.ShouldContain("IConfiguration configuration");
+        generatedCode.ShouldContain("configuration[");
+    }
+
     private static (Compilation Compilation, ImmutableArray<Diagnostic> Diagnostics) RunGenerator(string source)
     {
         var syntaxTree = CSharpSyntaxTree.ParseText(source);

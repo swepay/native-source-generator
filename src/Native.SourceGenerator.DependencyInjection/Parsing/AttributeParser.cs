@@ -76,7 +76,9 @@ internal static class AttributeParser
     {
         foreach (var attributeData in classSymbol.GetAttributes())
         {
-            if (attributeData.AttributeClass?.ToDisplayString() == RegisterAttributeFullName)
+            var attrClassName = attributeData.AttributeClass?.ToDisplayString();
+            if (attrClassName == RegisterAttributeFullName ||
+                attributeData.AttributeClass?.Name == "RegisterAttribute")
             {
                 return attributeData;
             }
