@@ -26,7 +26,7 @@ public sealed class DependencyInjectionGenerator : IIncrementalGenerator
         });
 
         // Find all classes with [Register] attribute
-        var classDeclarations = context.SyntaxProvider
+        IncrementalValuesProvider<ServiceRegistrationInfo> classDeclarations = context.SyntaxProvider
             .CreateSyntaxProvider(
                 predicate: static (node, ct) => AttributeParser.HasRegisterAttribute(node, ct),
                 transform: static (ctx, ct) => AttributeParser.ParseServiceRegistration(ctx, ct))
@@ -44,7 +44,7 @@ public sealed class DependencyInjectionGenerator : IIncrementalGenerator
         });
 
         // Collect all registrations and generate service registration extension
-        var allRegistrations = classDeclarations.Collect();
+        IncrementalValueProvider<ImmutableArray<ServiceRegistrationInfo>> allRegistrations = classDeclarations.Collect();
         context.RegisterSourceOutput(allRegistrations, static (ctx, registrations) =>
         {
             var registrationSource = ServiceRegistrationEmitter.EmitServiceRegistrations(registrations);

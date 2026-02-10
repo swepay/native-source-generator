@@ -38,7 +38,7 @@ internal static class ValidatorRegistrationEmitter
         sb.AppendLine("            this global::Microsoft.Extensions.DependencyInjection.IServiceCollection services)");
         sb.AppendLine("        {");
 
-        foreach (var registration in registrationsList)
+        foreach (ValidatorRegistrationInfo registration in registrationsList)
         {
             EmitValidatorRegistration(sb, registration);
         }
@@ -47,12 +47,12 @@ internal static class ValidatorRegistrationEmitter
         sb.AppendLine("        }");
 
         // Group by Group property for grouped methods
-        var groups = registrationsList
+        IOrderedEnumerable<IGrouping<string, ValidatorRegistrationInfo>> groups = registrationsList
             .Where(r => r.Group != null)
             .GroupBy(r => r.Group!)
             .OrderBy(g => g.Key);
 
-        foreach (var group in groups)
+        foreach (IGrouping<string, ValidatorRegistrationInfo>? group in groups)
         {
             sb.AppendLine();
             EmitGroupMethod(sb, group.Key, group);
@@ -82,7 +82,7 @@ internal static class ValidatorRegistrationEmitter
         sb.AppendLine("            this global::Microsoft.Extensions.DependencyInjection.IServiceCollection services)");
         sb.AppendLine("        {");
 
-        foreach (var registration in registrations)
+        foreach (ValidatorRegistrationInfo registration in registrations)
         {
             EmitValidatorRegistration(sb, registration);
         }

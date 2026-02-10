@@ -2,8 +2,8 @@
 
   <PropertyGroup>
     <PackageId>Native.SourceGenerator.Configuration</PackageId>
-    <Description>AOT-first source generator for configuration binding from environment variables. No ConfigurationBinder, no reflection.</Description>
-    <Version>1.0.2</Version>
+    <Description>AOT-first source generator for configuration binding from environment variables and appsettings.json. No ConfigurationBinder, no reflection.</Description>
+    <Version>1.0.3</Version>
   </PropertyGroup>
 
 </Project>

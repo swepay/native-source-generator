@@ -1,5 +1,6 @@
 namespace Native.SourceGenerator.Configuration.Parsing;
 
+using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Threading;
 using Microsoft.CodeAnalysis;
@@ -10,6 +11,7 @@ using Native.SourceGenerator.Configuration.Models;
 internal static class ConfigurationParser
 {
     public const string EnvironmentConfigAttributeFullName = "Native.SourceGenerator.Configuration.EnvironmentConfigAttribute";
+    public const string AppSettingsAttributeFullName = "Native.SourceGenerator.Configuration.AppSettingsAttribute";
 
     public static bool HasEnvironmentConfigFields(SyntaxNode node, CancellationToken cancellationToken)
     {
@@ -18,19 +20,20 @@ internal static class ConfigurationParser
             return false;
         }
 
-        foreach (var member in classDeclaration.Members)
+        foreach (MemberDeclarationSyntax member in classDeclaration.Members)
         {
             if (member is not FieldDeclarationSyntax fieldDeclaration)
             {
                 continue;
             }
 
-            foreach (var attributeList in fieldDeclaration.AttributeLists)
+            foreach (AttributeListSyntax attributeList in fieldDeclaration.AttributeLists)
             {
-                foreach (var attribute in attributeList.Attributes)
+                foreach (AttributeSyntax attribute in attributeList.Attributes)
                 {
                     var name = attribute.Name.ToString();
-                    if (name is "EnvironmentConfig" or "EnvironmentConfigAttribute")
+                    if (name is "EnvironmentConfig" or "EnvironmentConfigAttribute"
+                             or "AppSettings" or "AppSettingsAttribute")
                     {
                         return true;
                     }
@@ -46,14 +49,14 @@ internal static class ConfigurationParser
         CancellationToken cancellationToken)
     {
         var classDeclaration = (ClassDeclarationSyntax)context.Node;
-        var semanticModel = context.SemanticModel;
+        SemanticModel semanticModel = context.SemanticModel;
 
         if (semanticModel.GetDeclaredSymbol(classDeclaration, cancellationToken) is not INamedTypeSymbol classSymbol)
         {
             return null;
         }
 
-        var fields = ParseConfigurationFields(classSymbol);
+        ImmutableArray<ConfigurationFieldInfo> fields = ParseConfigurationFields(classSymbol);
         if (fields.IsEmpty)
         {
             return null;
@@ -72,9 +75,9 @@ internal static class ConfigurationParser
 
     private static ImmutableArray<ConfigurationFieldInfo> ParseConfigurationFields(INamedTypeSymbol classSymbol)
     {
-        var builder = ImmutableArray.CreateBuilder<ConfigurationFieldInfo>();
+        ImmutableArray<ConfigurationFieldInfo>.Builder builder = ImmutableArray.CreateBuilder<ConfigurationFieldInfo>();
 
-        foreach (var member in classSymbol.GetMembers())
+        foreach (ISymbol member in classSymbol.GetMembers())
         {
             if (member is not IFieldSymbol fieldSymbol)
             {
@@ -82,11 +85,22 @@ internal static class ConfigurationParser
             }
 
             AttributeData? configAttribute = null;
-            foreach (var attribute in fieldSymbol.GetAttributes())
+            ConfigurationSource source = ConfigurationSource.EnvironmentVariable;
+
+            foreach (AttributeData attribute in fieldSymbol.GetAttributes())
             {
-                if (attribute.AttributeClass?.ToDisplayString() == EnvironmentConfigAttributeFullName)
+                var attrName = attribute.AttributeClass?.ToDisplayString();
+                if (attrName == EnvironmentConfigAttributeFullName)
                 {
                     configAttribute = attribute;
+                    source = ConfigurationSource.EnvironmentVariable;
+                    break;
+                }
+
+                if (attrName == AppSettingsAttributeFullName)
+                {
+                    configAttribute = attribute;
+                    source = ConfigurationSource.AppSettings;
                     break;
                 }
             }
@@ -96,19 +110,19 @@ internal static class ConfigurationParser
                 continue;
             }
 
-            var environmentVariableName = string.Empty;
+            var configurationKey = string.Empty;
             var isRequired = true;
             string? defaultValue = null;
 
-            // Get environment variable name from constructor argument
+            // Get configuration key from constructor argument
             if (configAttribute.ConstructorArguments.Length > 0 &&
-                configAttribute.ConstructorArguments[0].Value is string envVarName)
+                configAttribute.ConstructorArguments[0].Value is string keyValue)
             {
-                environmentVariableName = envVarName;
+                configurationKey = keyValue;
             }
 
             // Get named arguments
-            foreach (var namedArg in configAttribute.NamedArguments)
+            foreach (KeyValuePair<string, TypedConstant> namedArg in configAttribute.NamedArguments)
             {
                 switch (namedArg.Key)
                 {
@@ -125,9 +139,10 @@ internal static class ConfigurationParser
                 FieldName: fieldSymbol.Name,
                 FieldType: fieldSymbol.Type.ToDisplayString(SymbolDisplayFormat.MinimallyQualifiedFormat),
                 FullyQualifiedFieldType: fieldSymbol.Type.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat),
-                EnvironmentVariableName: environmentVariableName,
+                ConfigurationKey: configurationKey,
                 IsRequired: isRequired,
                 DefaultValue: defaultValue,
+                Source: source,
                 Location: fieldSymbol.Locations[0]));
         }
 

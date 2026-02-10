@@ -67,7 +67,7 @@ internal static class ConfigurationEmitter
         sb.Append(memberIndent);
         sb.AppendLine("{");
 
-        foreach (var field in info.Fields)
+        foreach (ConfigurationFieldInfo field in info.Fields)
         {
             EmitFieldAssignment(sb, field, bodyIndent);
         }
@@ -78,7 +78,7 @@ internal static class ConfigurationEmitter
 
     private static void EmitFieldAssignment(StringBuilder sb, ConfigurationFieldInfo field, string indent)
     {
-        var configAccess = $"configuration[\"{field.EnvironmentVariableName}\"]";
+        var configAccess = $"configuration[\"{field.ConfigurationKey}\"]";
 
         // Determine if the type is nullable
         var isNullableType = field.FullyQualifiedFieldType.EndsWith("?");
@@ -143,7 +143,7 @@ internal static class ConfigurationEmitter
             sb.AppendLine();
             sb.Append(indent);
             sb.Append("    ?? throw new global::System.InvalidOperationException(\"Missing required configuration: ");
-            sb.Append(field.EnvironmentVariableName);
+            sb.Append(field.ConfigurationKey);
             sb.Append("\");");
         }
         else if (field.DefaultValue is not null)
@@ -187,7 +187,7 @@ internal static class ConfigurationEmitter
         if (field.IsRequired && field.DefaultValue is null)
         {
             sb.Append("throw new global::System.InvalidOperationException(\"Missing required configuration: ");
-            sb.Append(field.EnvironmentVariableName);
+            sb.Append(field.ConfigurationKey);
             sb.Append("\");");
         }
         else if (field.DefaultValue is not null)
@@ -222,7 +222,7 @@ internal static class ConfigurationEmitter
         if (field.IsRequired && field.DefaultValue is null)
         {
             sb.Append("throw new global::System.InvalidOperationException(\"Missing required configuration: ");
-            sb.Append(field.EnvironmentVariableName);
+            sb.Append(field.ConfigurationKey);
             sb.Append("\");");
         }
         else if (field.DefaultValue is not null)
@@ -255,7 +255,7 @@ internal static class ConfigurationEmitter
         if (field.IsRequired && field.DefaultValue is null)
         {
             sb.Append("throw new global::System.InvalidOperationException(\"Missing required configuration: ");
-            sb.Append(field.EnvironmentVariableName);
+            sb.Append(field.ConfigurationKey);
             sb.Append("\");");
         }
         else if (field.DefaultValue is not null)

@@ -2,13 +2,16 @@
 
 [![NuGet](https://img.shields.io/nuget/v/Native.SourceGenerator.Configuration.svg)](https://www.nuget.org/packages/Native.SourceGenerator.Configuration/)
 
-**AOT-first Source Generator for Configuration Binding** - Binds environment variables to fields without reflection or `ConfigurationBinder`.
+**AOT-first Source Generator for Configuration Binding** - Binds configuration values (environment variables and appsettings.json) to fields without reflection or `ConfigurationBinder`.
 
 ## Features
 
 - ✅ **100% Native AOT Compatible** - No reflection, no `ConfigurationBinder`
 - ✅ **Compile-time Binding Generation** - All errors caught at build time
-- ✅ **Type-safe Configuration** - Supports `string`, `int`, `bool`, `double`, `decimal`, `TimeSpan`, `DateTime`, `Guid`
+- ✅ **Two Configuration Sources**:
+  - `[EnvironmentConfig]` - Read from environment variables
+  - `[AppSettings]` - Read from appsettings.json (IConfiguration)
+- ✅ **Type-safe Configuration** - Supports `string`, `int`, `bool`, `double`, `decimal`, `TimeSpan`, `DateTime`, `Guid`, `Uri`
 - ✅ **IIncrementalGenerator** - Fast, incremental builds
 
 ## Installation
@@ -19,7 +22,9 @@ dotnet add package Native.SourceGenerator.Configuration
 
 ## Usage
 
-### 1. Mark your class as `partial` and fields with `[EnvironmentConfig]`
+### Option 1: Using `[EnvironmentConfig]` for Environment Variables
+
+Mark your class as `partial` and fields with `[EnvironmentConfig]`:
 
 ```csharp
 using Native.SourceGenerator.Configuration;
@@ -40,18 +45,89 @@ public partial class DatabaseSettings
 }
 ```
 
-### 2. Inject configuration
+### Option 2: Using `[AppSettings]` for appsettings.json
+
+For configuration stored in `appsettings.json`, use the `[AppSettings]` attribute with the configuration key path:
+
+**appsettings.json:**
+```json
+{
+    "Services": {
+        "UrlBase": "http://localhost:3000",
+        "Timeout": 30
+    },
+    "Database": {
+        "ConnectionString": "Server=localhost;Database=mydb",
+        "MaxPoolSize": 100
+    },
+    "Features": {
+        "EnableNewDashboard": true
+    }
+}
+```
+
+**C# Configuration Class:**
+```csharp
+using Native.SourceGenerator.Configuration;
+
+public partial class ServiceSettings
+{
+    [AppSettings("Services:UrlBase")]
+    private string _urlBase;
+    public string UrlBase => _urlBase;
+
+    [AppSettings("Services:Timeout", Required = false, DefaultValue = "60")]
+    private int _timeout;
+    public int Timeout => _timeout;
+
+    [AppSettings("Database:ConnectionString")]
+    private string _connectionString;
+    public string ConnectionString => _connectionString;
+
+    [AppSettings("Features:EnableNewDashboard", Required = false, DefaultValue = "false")]
+    private bool _enableNewDashboard;
+    public bool EnableNewDashboard => _enableNewDashboard;
+}
+```
+
+### Option 3: Mixing Both Attributes
+
+You can use both attributes in the same class for hybrid configuration:
+
+```csharp
+using Native.SourceGenerator.Configuration;
+
+public partial class HybridSettings
+{
+    // From environment variable (typically secrets)
+    [EnvironmentConfig("API_SECRET_KEY")]
+    private string _secretKey;
+    public string SecretKey => _secretKey;
+
+    // From appsettings.json (application settings)
+    [AppSettings("Api:BaseUrl")]
+    private string _baseUrl;
+    public string BaseUrl => _baseUrl;
+
+    [AppSettings("Api:Timeout", Required = false, DefaultValue = "30")]
+    private int _timeout;
+    public int Timeout => _timeout;
+}
+```
+
+### Injecting Configuration
 
 ```csharp
 var configuration = new ConfigurationBuilder()
+    .AddJsonFile("appsettings.json")
     .AddEnvironmentVariables()
     .Build();
 
-var settings = new DatabaseSettings();
+var settings = new ServiceSettings();
 settings.__InjectConfiguration(configuration);
 
-Console.WriteLine($"Connection: {settings.ConnectionString}");
-Console.WriteLine($"Max Connections: {settings.MaxConnections}");
+Console.WriteLine($"URL Base: {settings.UrlBase}");
+Console.WriteLine($"Timeout: {settings.Timeout}");
 ```
 
 ### Generated Code
@@ -60,20 +136,23 @@ The generator creates an `__InjectConfiguration` method:
 
 ```csharp
 // Auto-generated
-partial class DatabaseSettings
+partial class ServiceSettings
 {
     public void __InjectConfiguration(IConfiguration configuration)
     {
-        _connectionString = configuration["DATABASE_URL"]
-            ?? throw new InvalidOperationException("Missing required configuration: DATABASE_URL");
+        _urlBase = configuration["Services:UrlBase"]
+            ?? throw new InvalidOperationException("Missing required configuration: Services:UrlBase");
 
-        _maxConnections = configuration["MAX_CONNECTIONS"] is { Length: > 0 } __maxConnectionsValue
-            ? int.Parse(__maxConnectionsValue)
-            : 100;
+        _timeout = configuration["Services:Timeout"] is { Length: > 0 } __timeoutValue
+            ? int.Parse(__timeoutValue)
+            : int.Parse("60");
 
-        _enableSsl = configuration["ENABLE_SSL"] is { Length: > 0 } __enableSslValue
-            ? bool.Parse(__enableSslValue)
-            : true;
+        _connectionString = configuration["Database:ConnectionString"]
+            ?? throw new InvalidOperationException("Missing required configuration: Database:ConnectionString");
+
+        _enableNewDashboard = configuration["Features:EnableNewDashboard"] is { Length: > 0 } __enableNewDashboardValue
+            ? bool.Parse(__enableNewDashboardValue)
+            : bool.Parse("false");
     }
 }
 ```
@@ -85,6 +164,14 @@ partial class DatabaseSettings
 | Parameter | Type | Description |
 |-----------|------|-------------|
 | `environmentVariableName` | `string` | The name of the environment variable |
+| `Required` | `bool` | Whether the value is required (default: `true`) |
+| `DefaultValue` | `string` | Default value if not required and not set |
+
+### `[AppSettings]`
+
+| Parameter | Type | Description |
+|-----------|------|-------------|
+| `key` | `string` | The configuration key path (e.g., `"Section:SubSection:Key"`) |
 | `Required` | `bool` | Whether the value is required (default: `true`) |
 | `DefaultValue` | `string` | Default value if not required and not set |
 
@@ -101,6 +188,7 @@ partial class DatabaseSettings
 | `TimeSpan` | `TimeSpan.Parse()` |
 | `DateTime` | `DateTime.Parse()` |
 | `Guid` | `Guid.Parse()` |
+| `Uri` | `new Uri()` |
 
 Nullable versions (`int?`, `bool?`, etc.) are also supported.
 
@@ -110,12 +198,17 @@ Nullable versions (`int?`, `bool?`, etc.) are also supported.
 |------|-------------|
 | `CONFIG001` | Class must be partial |
 | `CONFIG002` | Unsupported field type |
+| `CONFIG003` | Field must not be static |
+| `CONFIG004` | Duplicate configuration key |
+| `CONFIG005` | Empty configuration key |
 
 ## Requirements
 
 - .NET 10 SDK
 - C# 13+
 - `Microsoft.Extensions.Configuration` package
+- `Microsoft.Extensions.Configuration.Json` package (for appsettings.json)
+- `Microsoft.Extensions.Configuration.EnvironmentVariables` package (for environment variables)
 
 ## License
 

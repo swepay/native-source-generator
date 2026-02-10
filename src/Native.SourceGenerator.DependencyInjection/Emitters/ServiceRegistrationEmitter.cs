@@ -23,19 +23,19 @@ internal static class ServiceRegistrationEmitter
         sb.AppendLine();
 
         // Group by Group property (null means default)
-        var groups = registrationsList
+        IOrderedEnumerable<IGrouping<string, ServiceRegistrationInfo>> groups = registrationsList
             .GroupBy(r => r.Group ?? string.Empty)
             .OrderBy(g => g.Key);
 
         // Default group (no Group specified)
-        var defaultGroup = groups.FirstOrDefault(g => g.Key == string.Empty);
+        IGrouping<string, ServiceRegistrationInfo>? defaultGroup = groups.FirstOrDefault(g => g.Key == string.Empty);
         if (defaultGroup is not null)
         {
             EmitExtensionClass(sb, "NativeGeneratedServices", "AddGeneratedServices", defaultGroup);
         }
 
         // Named groups
-        foreach (var group in groups.Where(g => g.Key != string.Empty))
+        foreach (IGrouping<string, ServiceRegistrationInfo>? group in groups.Where(g => g.Key != string.Empty))
         {
             sb.AppendLine();
             var className = $"NativeGenerated{group.Key}Services";
@@ -64,7 +64,7 @@ internal static class ServiceRegistrationEmitter
         sb.AppendLine("(this global::Microsoft.Extensions.DependencyInjection.IServiceCollection services)");
         sb.AppendLine("        {");
 
-        foreach (var registration in registrations)
+        foreach (ServiceRegistrationInfo registration in registrations)
         {
             EmitServiceRegistration(sb, registration);
         }

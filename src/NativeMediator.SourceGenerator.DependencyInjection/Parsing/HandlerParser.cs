@@ -1,5 +1,6 @@
 namespace NativeMediator.SourceGenerator.DependencyInjection.Parsing;
 
+using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Threading;
 using Microsoft.CodeAnalysis;
@@ -18,9 +19,9 @@ internal static class HandlerParser
             return false;
         }
 
-        foreach (var attributeList in classDeclaration.AttributeLists)
+        foreach (AttributeListSyntax attributeList in classDeclaration.AttributeLists)
         {
-            foreach (var attribute in attributeList.Attributes)
+            foreach (AttributeSyntax attribute in attributeList.Attributes)
             {
                 var name = attribute.Name.ToString();
                 if (name is MediatorHandlerAttributeName or "MediatorHandlerAttribute")
@@ -38,29 +39,29 @@ internal static class HandlerParser
         CancellationToken cancellationToken)
     {
         var classDeclaration = (ClassDeclarationSyntax)context.Node;
-        var semanticModel = context.SemanticModel;
+        SemanticModel semanticModel = context.SemanticModel;
 
         if (semanticModel.GetDeclaredSymbol(classDeclaration, cancellationToken) is not INamedTypeSymbol classSymbol)
         {
             return null;
         }
 
-        var attributeData = GetMediatorHandlerAttributeData(classSymbol);
+        AttributeData? attributeData = GetMediatorHandlerAttributeData(classSymbol);
         if (attributeData is null)
         {
             return null;
         }
 
-        var (lifetime, group) = ExtractAttributeValues(attributeData);
+        (string? lifetime, string? group) = ExtractAttributeValues(attributeData);
 
         // Find HandleAsync method to extract TRequest and TResponse
-        var (requestType, responseType) = FindHandleAsyncTypes(classSymbol);
+        (ITypeSymbol? requestType, ITypeSymbol? responseType) = FindHandleAsyncTypes(classSymbol);
         if (requestType is null || responseType is null)
         {
             return null;
         }
 
-        var injectableFields = GetInjectableFields(classSymbol);
+        ImmutableArray<InjectableFieldInfo> injectableFields = GetInjectableFields(classSymbol);
 
         var namespaceName = classSymbol.ContainingNamespace.IsGlobalNamespace
             ? string.Empty
@@ -82,14 +83,14 @@ internal static class HandlerParser
 
     private static (ITypeSymbol? RequestType, ITypeSymbol? ResponseType) FindHandleAsyncTypes(INamedTypeSymbol classSymbol)
     {
-        foreach (var member in classSymbol.GetMembers())
+        foreach (ISymbol member in classSymbol.GetMembers())
         {
             if (member is IMethodSymbol method && method.Name == "HandleAsync")
             {
                 // HandleAsync(TRequest request, CancellationToken ct) => Task<TResponse>
                 if (method.Parameters.Length >= 1 && method.ReturnType is INamedTypeSymbol returnType)
                 {
-                    var requestType = method.Parameters[0].Type;
+                    ITypeSymbol requestType = method.Parameters[0].Type;
 
                     // Extract TResponse from Task<TResponse>
                     ITypeSymbol? responseType = null;
@@ -115,7 +116,7 @@ internal static class HandlerParser
 
     private static AttributeData? GetMediatorHandlerAttributeData(INamedTypeSymbol classSymbol)
     {
-        foreach (var attributeData in classSymbol.GetAttributes())
+        foreach (AttributeData attributeData in classSymbol.GetAttributes())
         {
             var attrName = attributeData.AttributeClass?.ToDisplayString();
             if (attrName == MediatorHandlerAttributeFullName)
@@ -133,7 +134,7 @@ internal static class HandlerParser
         string? group = null;
 
         // Named arguments
-        foreach (var namedArg in attributeData.NamedArguments)
+        foreach (KeyValuePair<string, TypedConstant> namedArg in attributeData.NamedArguments)
         {
             switch (namedArg.Key)
             {
@@ -157,9 +158,9 @@ internal static class HandlerParser
 
     private static ImmutableArray<InjectableFieldInfo> GetInjectableFields(INamedTypeSymbol classSymbol)
     {
-        var builder = ImmutableArray.CreateBuilder<InjectableFieldInfo>();
+        ImmutableArray<InjectableFieldInfo>.Builder builder = ImmutableArray.CreateBuilder<InjectableFieldInfo>();
 
-        foreach (var member in classSymbol.GetMembers())
+        foreach (ISymbol member in classSymbol.GetMembers())
         {
             if (member is not IFieldSymbol fieldSymbol)
             {
@@ -168,7 +169,7 @@ internal static class HandlerParser
 
             // Check for [Inject] attribute - look for any attribute named "Inject"
             var hasInjectAttribute = false;
-            foreach (var attribute in fieldSymbol.GetAttributes())
+            foreach (AttributeData attribute in fieldSymbol.GetAttributes())
             {
                 var attrName = attribute.AttributeClass?.Name;
                 if (attrName is "InjectAttribute" or "Inject")

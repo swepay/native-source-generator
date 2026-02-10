@@ -38,7 +38,7 @@ internal static class HandlerRegistrationEmitter
         sb.AppendLine("            this global::Microsoft.Extensions.DependencyInjection.IServiceCollection services)");
         sb.AppendLine("        {");
 
-        foreach (var registration in registrationsList)
+        foreach (HandlerRegistrationInfo registration in registrationsList)
         {
             EmitHandlerRegistration(sb, registration);
         }
@@ -47,12 +47,12 @@ internal static class HandlerRegistrationEmitter
         sb.AppendLine("        }");
 
         // Group by Group property for grouped methods
-        var groups = registrationsList
+        IOrderedEnumerable<IGrouping<string, HandlerRegistrationInfo>> groups = registrationsList
             .Where(r => r.Group != null)
             .GroupBy(r => r.Group!)
             .OrderBy(g => g.Key);
 
-        foreach (var group in groups)
+        foreach (IGrouping<string, HandlerRegistrationInfo>? group in groups)
         {
             sb.AppendLine();
             EmitGroupMethod(sb, group.Key, group);
@@ -82,7 +82,7 @@ internal static class HandlerRegistrationEmitter
         sb.AppendLine("            this global::Microsoft.Extensions.DependencyInjection.IServiceCollection services)");
         sb.AppendLine("        {");
 
-        foreach (var registration in registrations)
+        foreach (HandlerRegistrationInfo registration in registrations)
         {
             EmitHandlerRegistration(sb, registration);
         }

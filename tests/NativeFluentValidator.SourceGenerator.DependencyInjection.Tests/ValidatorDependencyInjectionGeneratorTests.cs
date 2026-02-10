@@ -16,10 +16,10 @@ public class ValidatorDependencyInjectionGeneratorTests
             public class Empty { }
             """;
 
-        var (compilation, diagnostics) = RunGenerator(source);
+        (Compilation? compilation, ImmutableArray<Diagnostic> diagnostics) = RunGenerator(source);
         var generatedTrees = compilation.SyntaxTrees.ToList();
 
-        var validatorAttr = generatedTrees
+        SyntaxTree? validatorAttr = generatedTrees
             .FirstOrDefault(t => t.FilePath.Contains("NativeValidatorAttribute.g.cs"));
 
         validatorAttr.ShouldNotBeNull();
@@ -43,11 +43,11 @@ public class ValidatorDependencyInjectionGeneratorTests
             }
             """;
 
-        var (compilation, diagnostics) = RunGenerator(source);
+        (Compilation? compilation, ImmutableArray<Diagnostic> diagnostics) = RunGenerator(source);
 
         var generatedTrees = compilation.SyntaxTrees.ToList();
 
-        var registrationSource = generatedTrees
+        SyntaxTree? registrationSource = generatedTrees
             .FirstOrDefault(t => t.FilePath.Contains("NativeFluentValidatorServices.g.cs"));
 
         registrationSource.ShouldNotBeNull();
@@ -76,11 +76,11 @@ public class ValidatorDependencyInjectionGeneratorTests
             public partial class Request2Validator : AbstractValidator<Request2> { }
             """;
 
-        var (compilation, diagnostics) = RunGenerator(source);
+        (Compilation? compilation, ImmutableArray<Diagnostic> diagnostics) = RunGenerator(source);
 
         var generatedTrees = compilation.SyntaxTrees.ToList();
 
-        var registrationSource = generatedTrees
+        SyntaxTree? registrationSource = generatedTrees
             .FirstOrDefault(t => t.FilePath.Contains("NativeFluentValidatorServices.g.cs"));
 
         registrationSource.ShouldNotBeNull();
@@ -105,11 +105,11 @@ public class ValidatorDependencyInjectionGeneratorTests
             public partial class UserRequestValidator : AbstractValidator<UserRequest> { }
             """;
 
-        var (compilation, diagnostics) = RunGenerator(source);
+        (Compilation? compilation, ImmutableArray<Diagnostic> diagnostics) = RunGenerator(source);
 
         var generatedTrees = compilation.SyntaxTrees.ToList();
 
-        var registrationSource = generatedTrees
+        SyntaxTree? registrationSource = generatedTrees
             .FirstOrDefault(t => t.FilePath.Contains("NativeFluentValidatorServices.g.cs"));
 
         registrationSource.ShouldNotBeNull();
@@ -119,9 +119,9 @@ public class ValidatorDependencyInjectionGeneratorTests
 
     private static (Compilation Compilation, ImmutableArray<Diagnostic> Diagnostics) RunGenerator(string source)
     {
-        var syntaxTree = CSharpSyntaxTree.ParseText(source);
+        SyntaxTree syntaxTree = CSharpSyntaxTree.ParseText(source);
 
-        var references = new[]
+        PortableExecutableReference[] references = new[]
         {
             MetadataReference.CreateFromFile(typeof(object).Assembly.Location),
             MetadataReference.CreateFromFile(typeof(Attribute).Assembly.Location)
@@ -135,7 +135,7 @@ public class ValidatorDependencyInjectionGeneratorTests
 
         var generator = new ValidatorDependencyInjectionGenerator();
         GeneratorDriver driver = CSharpGeneratorDriver.Create(generator);
-        driver = driver.RunGeneratorsAndUpdateCompilation(compilation, out var outputCompilation, out var diagnostics);
+        driver = driver.RunGeneratorsAndUpdateCompilation(compilation, out Compilation? outputCompilation, out ImmutableArray<Diagnostic> diagnostics);
 
         return (outputCompilation, diagnostics);
     }

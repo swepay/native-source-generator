@@ -44,6 +44,7 @@ README.md
 - No Task.Run inside request handlers.
 - Gerar README.md para cada biblioteca
 - Sempre atualizar documentação do README.md após mudanças que impactem seu funcionamento
+- Criar um arquivo docs/CHANGELOG.md para documentar todas as mudanças realizadas e break changes.
 
 ## Estilo
 

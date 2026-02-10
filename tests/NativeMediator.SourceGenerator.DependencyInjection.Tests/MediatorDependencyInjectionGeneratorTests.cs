@@ -16,10 +16,10 @@ public class MediatorDependencyInjectionGeneratorTests
             public class Empty { }
             """;
 
-        var (compilation, diagnostics) = RunGenerator(source);
+        (Compilation? compilation, ImmutableArray<Diagnostic> diagnostics) = RunGenerator(source);
         var generatedTrees = compilation.SyntaxTrees.ToList();
 
-        var handlerAttr = generatedTrees
+        SyntaxTree? handlerAttr = generatedTrees
             .FirstOrDefault(t => t.FilePath.Contains("MediatorHandlerAttribute.g.cs"));
 
         handlerAttr.ShouldNotBeNull();
@@ -48,10 +48,10 @@ public class MediatorDependencyInjectionGeneratorTests
             }
             """;
 
-        var (compilation, diagnostics) = RunGenerator(source);
+        (Compilation? compilation, ImmutableArray<Diagnostic> diagnostics) = RunGenerator(source);
         var generatedTrees = compilation.SyntaxTrees.ToList();
 
-        var registrationSource = generatedTrees
+        SyntaxTree? registrationSource = generatedTrees
             .FirstOrDefault(t => t.FilePath.Contains("NativeMediatorServices.g.cs"));
 
         registrationSource.ShouldNotBeNull();
@@ -90,10 +90,10 @@ public class MediatorDependencyInjectionGeneratorTests
             }
             """;
 
-        var (compilation, diagnostics) = RunGenerator(source);
+        (Compilation? compilation, ImmutableArray<Diagnostic> diagnostics) = RunGenerator(source);
         var generatedTrees = compilation.SyntaxTrees.ToList();
 
-        var registrationSource = generatedTrees
+        SyntaxTree? registrationSource = generatedTrees
             .FirstOrDefault(t => t.FilePath.Contains("NativeMediatorServices.g.cs"));
 
         registrationSource.ShouldNotBeNull();
@@ -104,9 +104,9 @@ public class MediatorDependencyInjectionGeneratorTests
 
     private static (Compilation Compilation, ImmutableArray<Diagnostic> Diagnostics) RunGenerator(string source)
     {
-        var syntaxTree = CSharpSyntaxTree.ParseText(source);
+        SyntaxTree syntaxTree = CSharpSyntaxTree.ParseText(source);
 
-        var references = new[]
+        PortableExecutableReference[] references = new[]
         {
             MetadataReference.CreateFromFile(typeof(object).Assembly.Location),
             MetadataReference.CreateFromFile(typeof(Attribute).Assembly.Location),
@@ -121,7 +121,7 @@ public class MediatorDependencyInjectionGeneratorTests
 
         var generator = new MediatorDependencyInjectionGenerator();
         GeneratorDriver driver = CSharpGeneratorDriver.Create(generator);
-        driver = driver.RunGeneratorsAndUpdateCompilation(compilation, out var outputCompilation, out var diagnostics);
+        driver = driver.RunGeneratorsAndUpdateCompilation(compilation, out Compilation? outputCompilation, out ImmutableArray<Diagnostic> diagnostics);
 
         return (outputCompilation, diagnostics);
     }

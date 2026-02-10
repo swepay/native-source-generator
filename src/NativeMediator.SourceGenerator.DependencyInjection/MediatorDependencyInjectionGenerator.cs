@@ -1,9 +1,11 @@
 namespace NativeMediator.SourceGenerator.DependencyInjection;
 
+using System.Collections.Immutable;
 using System.Linq;
 using Microsoft.CodeAnalysis;
 using NativeMediator.SourceGenerator.DependencyInjection.Attributes;
 using NativeMediator.SourceGenerator.DependencyInjection.Emitters;
+using NativeMediator.SourceGenerator.DependencyInjection.Models;
 using NativeMediator.SourceGenerator.DependencyInjection.Parsing;
 
 /// <summary>
@@ -22,7 +24,7 @@ public sealed class MediatorDependencyInjectionGenerator : IIncrementalGenerator
         });
 
         // Find all classes with [MediatorHandler] attribute
-        var handlerDeclarations = context.SyntaxProvider
+        IncrementalValuesProvider<HandlerRegistrationInfo> handlerDeclarations = context.SyntaxProvider
             .CreateSyntaxProvider(
                 predicate: static (node, ct) => HandlerParser.HasMediatorHandlerAttribute(node, ct),
                 transform: static (ctx, ct) => HandlerParser.ParseHandlerRegistration(ctx, ct))
@@ -40,7 +42,7 @@ public sealed class MediatorDependencyInjectionGenerator : IIncrementalGenerator
         });
 
         // Collect all handlers and generate registration extensions
-        var allHandlers = handlerDeclarations.Collect();
+        IncrementalValueProvider<ImmutableArray<HandlerRegistrationInfo>> allHandlers = handlerDeclarations.Collect();
         context.RegisterSourceOutput(allHandlers, static (ctx, handlers) =>
         {
             var registrationSource = HandlerRegistrationEmitter.EmitHandlerRegistrations(handlers);

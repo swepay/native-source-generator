@@ -26,12 +26,12 @@ public class DependencyInjectionGeneratorTests
             }
             """;
 
-        var (compilation, diagnostics) = RunGenerator(source);
+        (Compilation? compilation, ImmutableArray<Diagnostic> diagnostics) = RunGenerator(source);
 
         var generatedTrees = compilation.SyntaxTrees.ToList();
         generatedTrees.Count.ShouldBeGreaterThan(1);
 
-        var constructorSource = generatedTrees
+        SyntaxTree? constructorSource = generatedTrees
             .FirstOrDefault(t => t.FilePath.Contains("MyService.Constructor"));
 
         constructorSource.ShouldNotBeNull();
@@ -62,10 +62,10 @@ public class DependencyInjectionGeneratorTests
             }
             """;
 
-        var (compilation, diagnostics) = RunGenerator(source);
+        (Compilation? compilation, ImmutableArray<Diagnostic> diagnostics) = RunGenerator(source);
 
         var generatedTrees = compilation.SyntaxTrees.ToList();
-        var constructorSource = generatedTrees
+        SyntaxTree? constructorSource = generatedTrees
             .FirstOrDefault(t => t.FilePath.Contains("MyService.Constructor"));
 
         constructorSource.ShouldNotBeNull();
@@ -96,10 +96,10 @@ public class DependencyInjectionGeneratorTests
             }
             """;
 
-        var (compilation, diagnostics) = RunGenerator(source);
+        (Compilation? compilation, ImmutableArray<Diagnostic> diagnostics) = RunGenerator(source);
 
         var generatedTrees = compilation.SyntaxTrees.ToList();
-        var registrationSource = generatedTrees
+        SyntaxTree? registrationSource = generatedTrees
             .FirstOrDefault(t => t.FilePath.Contains("NativeGeneratedServices"));
 
         registrationSource.ShouldNotBeNull();
@@ -123,18 +123,18 @@ public class DependencyInjectionGeneratorTests
             }
             """;
 
-        var (compilation, diagnostics) = RunGenerator(source);
+        (Compilation? compilation, ImmutableArray<Diagnostic> diagnostics) = RunGenerator(source);
 
         var generatedTrees = compilation.SyntaxTrees.ToList();
 
         // Should not generate a constructor file
-        var constructorSource = generatedTrees
+        SyntaxTree? constructorSource = generatedTrees
             .FirstOrDefault(t => t.FilePath.Contains("MyService.Constructor"));
 
         constructorSource.ShouldBeNull();
 
         // But should still generate registration
-        var registrationSource = generatedTrees
+        SyntaxTree? registrationSource = generatedTrees
             .FirstOrDefault(t => t.FilePath.Contains("NativeGeneratedServices"));
 
         registrationSource.ShouldNotBeNull();
@@ -148,16 +148,16 @@ public class DependencyInjectionGeneratorTests
             public class Empty { }
             """;
 
-        var (compilation, diagnostics) = RunGenerator(source);
+        (Compilation? compilation, ImmutableArray<Diagnostic> diagnostics) = RunGenerator(source);
 
         var generatedTrees = compilation.SyntaxTrees.ToList();
 
-        var registerAttr = generatedTrees
+        SyntaxTree? registerAttr = generatedTrees
             .FirstOrDefault(t => t.FilePath.Contains("RegisterAttribute.g.cs"));
 
         registerAttr.ShouldNotBeNull();
 
-        var injectAttr = generatedTrees
+        SyntaxTree? injectAttr = generatedTrees
             .FirstOrDefault(t => t.FilePath.Contains("InjectAttribute.g.cs"));
 
         injectAttr.ShouldNotBeNull();
@@ -165,9 +165,9 @@ public class DependencyInjectionGeneratorTests
 
     private static (Compilation Compilation, ImmutableArray<Diagnostic> Diagnostics) RunGenerator(string source)
     {
-        var syntaxTree = CSharpSyntaxTree.ParseText(source);
+        SyntaxTree syntaxTree = CSharpSyntaxTree.ParseText(source);
 
-        var references = new[]
+        PortableExecutableReference[] references = new[]
         {
             MetadataReference.CreateFromFile(typeof(object).Assembly.Location),
             MetadataReference.CreateFromFile(typeof(Attribute).Assembly.Location)
@@ -181,7 +181,7 @@ public class DependencyInjectionGeneratorTests
 
         var generator = new DependencyInjectionGenerator();
         GeneratorDriver driver = CSharpGeneratorDriver.Create(generator);
-        driver = driver.RunGeneratorsAndUpdateCompilation(compilation, out var outputCompilation, out var diagnostics);
+        driver = driver.RunGeneratorsAndUpdateCompilation(compilation, out Compilation? outputCompilation, out ImmutableArray<Diagnostic> diagnostics);
 
         return (outputCompilation, diagnostics);
     }

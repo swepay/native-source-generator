@@ -1,9 +1,11 @@
 namespace NativeFluentValidator.SourceGenerator.DependencyInjection;
 
+using System.Collections.Immutable;
 using System.Linq;
 using Microsoft.CodeAnalysis;
 using NativeFluentValidator.SourceGenerator.DependencyInjection.Attributes;
 using NativeFluentValidator.SourceGenerator.DependencyInjection.Emitters;
+using NativeFluentValidator.SourceGenerator.DependencyInjection.Models;
 using NativeFluentValidator.SourceGenerator.DependencyInjection.Parsing;
 
 /// <summary>
@@ -22,7 +24,7 @@ public sealed class ValidatorDependencyInjectionGenerator : IIncrementalGenerato
         });
 
         // Find all classes with [NativeValidator] attribute
-        var validatorDeclarations = context.SyntaxProvider
+        IncrementalValuesProvider<ValidatorRegistrationInfo> validatorDeclarations = context.SyntaxProvider
             .CreateSyntaxProvider(
                 predicate: static (node, ct) => ValidatorParser.HasNativeValidatorAttribute(node, ct),
                 transform: static (ctx, ct) => ValidatorParser.ParseValidatorRegistration(ctx, ct))
@@ -40,7 +42,7 @@ public sealed class ValidatorDependencyInjectionGenerator : IIncrementalGenerato
         });
 
         // Collect all validators and generate registration extensions
-        var allValidators = validatorDeclarations.Collect();
+        IncrementalValueProvider<ImmutableArray<ValidatorRegistrationInfo>> allValidators = validatorDeclarations.Collect();
         context.RegisterSourceOutput(allValidators, static (ctx, validators) =>
         {
             var registrationSource = ValidatorRegistrationEmitter.EmitValidatorRegistrations(validators);

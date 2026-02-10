@@ -1,5 +1,6 @@
 namespace Native.SourceGenerator.DependencyInjection.Parsing;
 
+using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Threading;
 using Microsoft.CodeAnalysis;
@@ -20,9 +21,9 @@ internal static class AttributeParser
             return false;
         }
 
-        foreach (var attributeList in classDeclaration.AttributeLists)
+        foreach (AttributeListSyntax attributeList in classDeclaration.AttributeLists)
         {
-            foreach (var attribute in attributeList.Attributes)
+            foreach (AttributeSyntax attribute in attributeList.Attributes)
             {
                 var name = attribute.Name.ToString();
                 if (name is "Register" or "RegisterAttribute")
@@ -40,21 +41,21 @@ internal static class AttributeParser
         CancellationToken cancellationToken)
     {
         var classDeclaration = (ClassDeclarationSyntax)context.Node;
-        var semanticModel = context.SemanticModel;
+        SemanticModel semanticModel = context.SemanticModel;
 
         if (semanticModel.GetDeclaredSymbol(classDeclaration, cancellationToken) is not INamedTypeSymbol classSymbol)
         {
             return null;
         }
 
-        var registerAttributeData = GetRegisterAttributeData(classSymbol);
+        AttributeData? registerAttributeData = GetRegisterAttributeData(classSymbol);
         if (registerAttributeData is null)
         {
             return null;
         }
 
-        var (serviceType, lifetime, group) = ExtractAttributeValues(registerAttributeData);
-        var injectableFields = GetInjectableFields(classSymbol);
+        (INamedTypeSymbol? serviceType, string? lifetime, string? group) = ExtractAttributeValues(registerAttributeData);
+        ImmutableArray<InjectableFieldInfo> injectableFields = GetInjectableFields(classSymbol);
 
         var namespaceName = classSymbol.ContainingNamespace.IsGlobalNamespace
             ? string.Empty
@@ -74,7 +75,7 @@ internal static class AttributeParser
 
     private static AttributeData? GetRegisterAttributeData(INamedTypeSymbol classSymbol)
     {
-        foreach (var attributeData in classSymbol.GetAttributes())
+        foreach (AttributeData attributeData in classSymbol.GetAttributes())
         {
             var attrClassName = attributeData.AttributeClass?.ToDisplayString();
             if (attrClassName == RegisterAttributeFullName ||
@@ -118,7 +119,7 @@ internal static class AttributeParser
         }
 
         // Named arguments
-        foreach (var namedArg in attributeData.NamedArguments)
+        foreach (KeyValuePair<string, TypedConstant> namedArg in attributeData.NamedArguments)
         {
             switch (namedArg.Key)
             {
@@ -142,9 +143,9 @@ internal static class AttributeParser
 
     private static ImmutableArray<InjectableFieldInfo> GetInjectableFields(INamedTypeSymbol classSymbol)
     {
-        var builder = ImmutableArray.CreateBuilder<InjectableFieldInfo>();
+        ImmutableArray<InjectableFieldInfo>.Builder builder = ImmutableArray.CreateBuilder<InjectableFieldInfo>();
 
-        foreach (var member in classSymbol.GetMembers())
+        foreach (ISymbol member in classSymbol.GetMembers())
         {
             if (member is not IFieldSymbol fieldSymbol)
             {
@@ -152,7 +153,7 @@ internal static class AttributeParser
             }
 
             var hasInjectAttribute = false;
-            foreach (var attribute in fieldSymbol.GetAttributes())
+            foreach (AttributeData attribute in fieldSymbol.GetAttributes())
             {
                 if (attribute.AttributeClass?.ToDisplayString() == InjectAttributeFullName)
                 {
@@ -188,7 +189,7 @@ internal static class AttributeParser
         INamedTypeSymbol classSymbol,
         ServiceRegistrationInfo registrationInfo)
     {
-        var diagnostics = ImmutableArray.CreateBuilder<Diagnostic>();
+        ImmutableArray<Diagnostic>.Builder diagnostics = ImmutableArray.CreateBuilder<Diagnostic>();
 
         // DI001: Must be partial
         if (!classDeclaration.Modifiers.Any(SyntaxKind.PartialKeyword))
@@ -227,7 +228,7 @@ internal static class AttributeParser
         }
 
         // DI003: Fields must be readonly
-        foreach (var member in classSymbol.GetMembers())
+        foreach (ISymbol member in classSymbol.GetMembers())
         {
             if (member is not IFieldSymbol fieldSymbol)
             {
@@ -235,7 +236,7 @@ internal static class AttributeParser
             }
 
             var hasInjectAttribute = false;
-            foreach (var attribute in fieldSymbol.GetAttributes())
+            foreach (AttributeData attribute in fieldSymbol.GetAttributes())
             {
                 if (attribute.AttributeClass?.ToDisplayString() == InjectAttributeFullName)
                 {

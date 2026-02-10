@@ -8,6 +8,8 @@ using Xunit;
 
 public class ConfigurationGeneratorTests
 {
+    #region EnvironmentConfig Tests
+
     [Fact]
     public void Generator_WithEnvironmentConfigAttribute_GeneratesInjectConfigurationMethod()
     {
@@ -23,7 +25,7 @@ public class ConfigurationGeneratorTests
             }
             """;
 
-        var (compilation, diagnostics) = RunGenerator(source);
+        (Compilation? compilation, ImmutableArray<Diagnostic> diagnostics) = RunGenerator(source);
 
         diagnostics.ShouldBeEmpty();
 
@@ -50,7 +52,7 @@ public class ConfigurationGeneratorTests
             }
             """;
 
-        var (compilation, diagnostics) = RunGenerator(source);
+        (Compilation? compilation, ImmutableArray<Diagnostic> diagnostics) = RunGenerator(source);
 
         diagnostics.ShouldBeEmpty();
 
@@ -76,7 +78,7 @@ public class ConfigurationGeneratorTests
             }
             """;
 
-        var (compilation, diagnostics) = RunGenerator(source);
+        (Compilation? compilation, ImmutableArray<Diagnostic> diagnostics) = RunGenerator(source);
 
         diagnostics.ShouldBeEmpty();
 
@@ -101,7 +103,7 @@ public class ConfigurationGeneratorTests
             }
             """;
 
-        var (compilation, diagnostics) = RunGenerator(source);
+        (Compilation? compilation, ImmutableArray<Diagnostic> diagnostics) = RunGenerator(source);
 
         diagnostics.ShouldBeEmpty();
 
@@ -126,7 +128,7 @@ public class ConfigurationGeneratorTests
             }
             """;
 
-        var (compilation, diagnostics) = RunGenerator(source);
+        (Compilation? compilation, ImmutableArray<Diagnostic> diagnostics) = RunGenerator(source);
 
         diagnostics.ShouldBeEmpty();
 
@@ -157,7 +159,7 @@ public class ConfigurationGeneratorTests
             }
             """;
 
-        var (compilation, diagnostics) = RunGenerator(source);
+        (Compilation? compilation, ImmutableArray<Diagnostic> diagnostics) = RunGenerator(source);
 
         diagnostics.ShouldBeEmpty();
 
@@ -187,7 +189,7 @@ public class ConfigurationGeneratorTests
             }
             """;
 
-        var (compilation, diagnostics) = RunGenerator(source);
+        (Compilation? compilation, ImmutableArray<Diagnostic> diagnostics) = RunGenerator(source);
 
         diagnostics.ShouldBeEmpty();
 
@@ -199,11 +201,255 @@ public class ConfigurationGeneratorTests
         generatedCode.ShouldContain("configuration[");
     }
 
+    #endregion
+
+    #region AppSettings Tests
+
+    [Fact]
+    public void Generator_WithAppSettingsAttribute_GeneratesInjectConfigurationMethod()
+    {
+        var source = """
+            using Native.SourceGenerator.Configuration;
+
+            namespace TestNamespace;
+
+            public partial class ServiceSettings
+            {
+                [AppSettings("Services:UrlBase")]
+                private readonly string _urlBase;
+            }
+            """;
+
+        (Compilation? compilation, ImmutableArray<Diagnostic> diagnostics) = RunGenerator(source);
+
+        diagnostics.ShouldBeEmpty();
+
+        var generatedTrees = compilation.SyntaxTrees.ToList();
+        generatedTrees.Count.ShouldBeGreaterThan(1);
+
+        var generatedCode = generatedTrees[^1].ToString();
+        generatedCode.ShouldContain("__InjectConfiguration");
+        generatedCode.ShouldContain("Services:UrlBase");
+    }
+
+    [Fact]
+    public void Generator_WithAppSettingsAttribute_GeneratesConfigurationAccess()
+    {
+        var source = """
+            using Native.SourceGenerator.Configuration;
+
+            namespace TestNamespace;
+
+            public partial class DatabaseConfig
+            {
+                [AppSettings("Database:ConnectionString")]
+                private readonly string _connectionString;
+
+                [AppSettings("Database:MaxPoolSize")]
+                private readonly int _maxPoolSize;
+            }
+            """;
+
+        (Compilation? compilation, ImmutableArray<Diagnostic> diagnostics) = RunGenerator(source);
+
+        diagnostics.ShouldBeEmpty();
+
+        var generatedTrees = compilation.SyntaxTrees.ToList();
+        var generatedCode = generatedTrees[^1].ToString();
+
+        generatedCode.ShouldContain("configuration[\"Database:ConnectionString\"]");
+        generatedCode.ShouldContain("configuration[\"Database:MaxPoolSize\"]");
+        generatedCode.ShouldContain("int.Parse");
+    }
+
+    [Fact]
+    public void Generator_WithAppSettingsRequired_GeneratesThrowOnMissing()
+    {
+        var source = """
+            using Native.SourceGenerator.Configuration;
+
+            namespace TestNamespace;
+
+            public partial class ApiSettings
+            {
+                [AppSettings("Api:BaseUrl", Required = true)]
+                private readonly string _baseUrl;
+            }
+            """;
+
+        (Compilation? compilation, ImmutableArray<Diagnostic> diagnostics) = RunGenerator(source);
+
+        diagnostics.ShouldBeEmpty();
+
+        var generatedTrees = compilation.SyntaxTrees.ToList();
+        var generatedCode = generatedTrees[^1].ToString();
+
+        generatedCode.ShouldContain("InvalidOperationException");
+        generatedCode.ShouldContain("Missing required configuration: Api:BaseUrl");
+    }
+
+    [Fact]
+    public void Generator_WithAppSettingsDefaultValue_GeneratesDefaultAssignment()
+    {
+        var source = """
+            using Native.SourceGenerator.Configuration;
+
+            namespace TestNamespace;
+
+            public partial class CacheSettings
+            {
+                [AppSettings("Cache:ExpirationMinutes", Required = false, DefaultValue = "30")]
+                private readonly int _expirationMinutes;
+            }
+            """;
+
+        (Compilation? compilation, ImmutableArray<Diagnostic> diagnostics) = RunGenerator(source);
+
+        diagnostics.ShouldBeEmpty();
+
+        var generatedTrees = compilation.SyntaxTrees.ToList();
+        var generatedCode = generatedTrees[^1].ToString();
+
+        generatedCode.ShouldContain("int.Parse(\"30\")");
+    }
+
+    [Fact]
+    public void Generator_WithAppSettingsNestedPath_GeneratesCorrectAccess()
+    {
+        var source = """
+            using Native.SourceGenerator.Configuration;
+
+            namespace TestNamespace;
+
+            public partial class NestedSettings
+            {
+                [AppSettings("Logging:LogLevel:Default")]
+                private readonly string _defaultLogLevel;
+
+                [AppSettings("Authentication:Jwt:Secret")]
+                private readonly string _jwtSecret;
+            }
+            """;
+
+        (Compilation? compilation, ImmutableArray<Diagnostic> diagnostics) = RunGenerator(source);
+
+        diagnostics.ShouldBeEmpty();
+
+        var generatedTrees = compilation.SyntaxTrees.ToList();
+        var generatedCode = generatedTrees[^1].ToString();
+
+        generatedCode.ShouldContain("configuration[\"Logging:LogLevel:Default\"]");
+        generatedCode.ShouldContain("configuration[\"Authentication:Jwt:Secret\"]");
+    }
+
+    [Fact]
+    public void Generator_WithMixedAttributes_GeneratesBothConfigurations()
+    {
+        var source = """
+            using Native.SourceGenerator.Configuration;
+
+            namespace TestNamespace;
+
+            public partial class MixedSettings
+            {
+                [EnvironmentConfig("API_KEY")]
+                private readonly string _apiKey;
+
+                [AppSettings("Services:UrlBase")]
+                private readonly string _urlBase;
+
+                [EnvironmentConfig("DEBUG_MODE", Required = false, DefaultValue = "false")]
+                private readonly bool _debugMode;
+
+                [AppSettings("Cache:Enabled", Required = false, DefaultValue = "true")]
+                private readonly bool _cacheEnabled;
+            }
+            """;
+
+        (Compilation? compilation, ImmutableArray<Diagnostic> diagnostics) = RunGenerator(source);
+
+        diagnostics.ShouldBeEmpty();
+
+        var generatedTrees = compilation.SyntaxTrees.ToList();
+        var generatedCode = generatedTrees[^1].ToString();
+
+        // Environment config
+        generatedCode.ShouldContain("configuration[\"API_KEY\"]");
+        generatedCode.ShouldContain("configuration[\"DEBUG_MODE\"]");
+
+        // AppSettings
+        generatedCode.ShouldContain("configuration[\"Services:UrlBase\"]");
+        generatedCode.ShouldContain("configuration[\"Cache:Enabled\"]");
+
+        // All fields
+        generatedCode.ShouldContain("_apiKey");
+        generatedCode.ShouldContain("_urlBase");
+        generatedCode.ShouldContain("_debugMode");
+        generatedCode.ShouldContain("_cacheEnabled");
+    }
+
+    [Fact]
+    public void Generator_WithAppSettingsBoolType_GeneratesBoolParse()
+    {
+        var source = """
+            using Native.SourceGenerator.Configuration;
+
+            namespace TestNamespace;
+
+            public partial class FeatureFlags
+            {
+                [AppSettings("Features:EnableNewDashboard")]
+                private readonly bool _enableNewDashboard;
+            }
+            """;
+
+        (Compilation? compilation, ImmutableArray<Diagnostic> diagnostics) = RunGenerator(source);
+
+        diagnostics.ShouldBeEmpty();
+
+        var generatedTrees = compilation.SyntaxTrees.ToList();
+        var generatedCode = generatedTrees[^1].ToString();
+
+        generatedCode.ShouldContain("bool.Parse");
+        generatedCode.ShouldContain("Features:EnableNewDashboard");
+    }
+
+    [Fact]
+    public void Generator_AppSettingsAttributeIsGenerated()
+    {
+        var source = """
+            using Native.SourceGenerator.Configuration;
+
+            namespace TestNamespace;
+
+            public partial class TestClass
+            {
+                [AppSettings("Test:Value")]
+                private readonly string _value;
+            }
+            """;
+
+        (Compilation? compilation, ImmutableArray<Diagnostic> _) = RunGenerator(source);
+
+        var generatedTrees = compilation.SyntaxTrees.ToList();
+        var appSettingsAttributeSource = generatedTrees
+            .FirstOrDefault(t => t.ToString().Contains("AppSettingsAttribute"))
+            ?.ToString();
+
+        appSettingsAttributeSource.ShouldNotBeNull();
+        appSettingsAttributeSource.ShouldContain("class AppSettingsAttribute");
+        appSettingsAttributeSource.ShouldContain("public string Key { get; }");
+        appSettingsAttributeSource.ShouldContain("public bool Required { get; set; }");
+        appSettingsAttributeSource.ShouldContain("public string? DefaultValue { get; set; }");
+    }
+
+    #endregion
+
     private static (Compilation Compilation, ImmutableArray<Diagnostic> Diagnostics) RunGenerator(string source)
     {
-        var syntaxTree = CSharpSyntaxTree.ParseText(source);
+        SyntaxTree syntaxTree = CSharpSyntaxTree.ParseText(source);
 
-        var references = new[]
+        PortableExecutableReference[] references = new[]
         {
             MetadataReference.CreateFromFile(typeof(object).Assembly.Location),
             MetadataReference.CreateFromFile(typeof(Attribute).Assembly.Location),
@@ -218,7 +464,7 @@ public class ConfigurationGeneratorTests
 
         var generator = new ConfigurationGenerator();
         GeneratorDriver driver = CSharpGeneratorDriver.Create(generator);
-        driver = driver.RunGeneratorsAndUpdateCompilation(compilation, out var outputCompilation, out var diagnostics);
+        driver = driver.RunGeneratorsAndUpdateCompilation(compilation, out Compilation? outputCompilation, out ImmutableArray<Diagnostic> diagnostics);
 
         return (outputCompilation, diagnostics);
     }

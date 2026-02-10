@@ -65,7 +65,7 @@ internal static class HandlerConstructorEmitter
         // Parameters
         for (var i = 0; i < info.InjectableFields.Length; i++)
         {
-            var field = info.InjectableFields[i];
+            InjectableFieldInfo field = info.InjectableFields[i];
             sb.Append(bodyIndent);
             sb.Append(field.FullyQualifiedFieldType);
             sb.Append(' ');
@@ -85,7 +85,7 @@ internal static class HandlerConstructorEmitter
         sb.Append(memberIndent);
         sb.AppendLine("{");
 
-        foreach (var field in info.InjectableFields)
+        foreach (InjectableFieldInfo field in info.InjectableFields)
         {
             sb.Append(bodyIndent);
             sb.Append(field.FieldName);

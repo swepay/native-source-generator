@@ -1,5 +1,6 @@
 namespace NativeFluentValidator.SourceGenerator.DependencyInjection.Parsing;
 
+using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Threading;
 using Microsoft.CodeAnalysis;
@@ -18,9 +19,9 @@ internal static class ValidatorParser
             return false;
         }
 
-        foreach (var attributeList in classDeclaration.AttributeLists)
+        foreach (AttributeListSyntax attributeList in classDeclaration.AttributeLists)
         {
-            foreach (var attribute in attributeList.Attributes)
+            foreach (AttributeSyntax attribute in attributeList.Attributes)
             {
                 var name = attribute.Name.ToString();
                 if (name is NativeValidatorAttributeName or "NativeValidatorAttribute")
@@ -38,23 +39,23 @@ internal static class ValidatorParser
         CancellationToken cancellationToken)
     {
         var classDeclaration = (ClassDeclarationSyntax)context.Node;
-        var semanticModel = context.SemanticModel;
+        SemanticModel semanticModel = context.SemanticModel;
 
         if (semanticModel.GetDeclaredSymbol(classDeclaration, cancellationToken) is not INamedTypeSymbol classSymbol)
         {
             return null;
         }
 
-        var attributeData = GetNativeValidatorAttributeData(classSymbol);
+        AttributeData? attributeData = GetNativeValidatorAttributeData(classSymbol);
         if (attributeData is null)
         {
             return null;
         }
 
-        var (lifetime, group) = ExtractAttributeValues(attributeData);
+        (string? lifetime, string? group) = ExtractAttributeValues(attributeData);
 
         // Find the validated type from base class or interface
-        var validatedType = FindValidatedType(classSymbol);
+        ITypeSymbol? validatedType = FindValidatedType(classSymbol);
         if (validatedType is null)
         {
             // Fall back to using the class name to infer validated type
@@ -69,7 +70,7 @@ internal static class ValidatorParser
             return null;
         }
 
-        var injectableFields = GetInjectableFields(classSymbol);
+        ImmutableArray<InjectableFieldInfo> injectableFields = GetInjectableFields(classSymbol);
 
         var namespaceName = classSymbol.ContainingNamespace.IsGlobalNamespace
             ? string.Empty
@@ -95,7 +96,7 @@ internal static class ValidatorParser
         string lifetime,
         string? group)
     {
-        var injectableFields = GetInjectableFields(classSymbol);
+        ImmutableArray<InjectableFieldInfo> injectableFields = GetInjectableFields(classSymbol);
         var namespaceName = classSymbol.ContainingNamespace.IsGlobalNamespace
             ? string.Empty
             : classSymbol.ContainingNamespace.ToDisplayString();
@@ -115,7 +116,7 @@ internal static class ValidatorParser
     private static ITypeSymbol? FindValidatedType(INamedTypeSymbol classSymbol)
     {
         // Check interfaces for IValidator<T> pattern
-        foreach (var iface in classSymbol.AllInterfaces)
+        foreach (INamedTypeSymbol iface in classSymbol.AllInterfaces)
         {
             if (iface.IsGenericType &&
                 (iface.Name.Contains("Validator") || iface.Name == "IValidator") &&
@@ -126,7 +127,7 @@ internal static class ValidatorParser
         }
 
         // Check base classes for AbstractValidator<T> or similar pattern
-        var baseType = classSymbol.BaseType;
+        INamedTypeSymbol? baseType = classSymbol.BaseType;
         while (baseType != null)
         {
             if (baseType.IsGenericType &&
@@ -143,7 +144,7 @@ internal static class ValidatorParser
 
     private static AttributeData? GetNativeValidatorAttributeData(INamedTypeSymbol classSymbol)
     {
-        foreach (var attributeData in classSymbol.GetAttributes())
+        foreach (AttributeData attributeData in classSymbol.GetAttributes())
         {
             var attrName = attributeData.AttributeClass?.ToDisplayString();
             if (attrName == NativeValidatorAttributeFullName)
@@ -161,7 +162,7 @@ internal static class ValidatorParser
         string? group = null;
 
         // Named arguments
-        foreach (var namedArg in attributeData.NamedArguments)
+        foreach (KeyValuePair<string, TypedConstant> namedArg in attributeData.NamedArguments)
         {
             switch (namedArg.Key)
             {
@@ -185,9 +186,9 @@ internal static class ValidatorParser
 
     private static ImmutableArray<InjectableFieldInfo> GetInjectableFields(INamedTypeSymbol classSymbol)
     {
-        var builder = ImmutableArray.CreateBuilder<InjectableFieldInfo>();
+        ImmutableArray<InjectableFieldInfo>.Builder builder = ImmutableArray.CreateBuilder<InjectableFieldInfo>();
 
-        foreach (var member in classSymbol.GetMembers())
+        foreach (ISymbol member in classSymbol.GetMembers())
         {
             if (member is not IFieldSymbol fieldSymbol)
             {
@@ -196,7 +197,7 @@ internal static class ValidatorParser
 
             // Check for [Inject] attribute - look for any attribute named "Inject"
             var hasInjectAttribute = false;
-            foreach (var attribute in fieldSymbol.GetAttributes())
+            foreach (AttributeData attribute in fieldSymbol.GetAttributes())
             {
                 var attrName = attribute.AttributeClass?.Name;
                 if (attrName is "InjectAttribute" or "Inject")
