@@ -61,9 +61,9 @@ internal static class ServiceRegistrationEmitter
         sb.AppendLine("    {");
 
         // Extension method
-        sb.Append("        public static IServiceCollection ");
+        sb.Append("        public static global::Microsoft.Extensions.DependencyInjection.IServiceCollection ");
         sb.Append(methodName);
-        sb.AppendLine("(this IServiceCollection services)");
+        sb.AppendLine("(this global::Microsoft.Extensions.DependencyInjection.IServiceCollection services)");
         sb.AppendLine("        {");
 
         foreach (var registration in registrations)

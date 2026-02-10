@@ -37,7 +37,7 @@ public class ConsoleLogger : ILogger { }
 public partial class MyService : IMyService
 {
     [Inject] private readonly ILogger _logger;
-    
+
     public void DoSomething() => Console.WriteLine("Doing something...");
 }
 
@@ -50,11 +50,11 @@ public partial class AppSettings
     [EnvironmentConfig("APP_NAME")]
     private string _appName = "DefaultApp";
     public string AppName => _appName;
-    
+
     [EnvironmentConfig("MAX_RETRIES")]
     private int _maxRetries = 3;
     public int MaxRetries => _maxRetries;
-    
+
     [EnvironmentConfig("ENABLE_FEATURE")]
     private bool _enableFeature = false;
     public bool EnableFeature => _enableFeature;
