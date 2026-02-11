@@ -55,7 +55,7 @@ README.md
 
 ## Testes
 
-Sempre gerar testes usando:
+Testes unitários devem seguir a estrutura AAA, sempre gerar testes usando:
 
 - NSubstitute
 - Bogus
@@ -87,3 +87,5 @@ Copilot **NÃO DEVE**:
 - Usar reflection
 - Gerar código mágico
 - Depender de runtime behavior
+- Deixar implementação incompleta
+- Gerar implementações nulas

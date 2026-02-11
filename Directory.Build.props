@@ -20,6 +20,7 @@
     <RepositoryType>git</RepositoryType>
     <PackageTags>source-generator;aot;native-aot;dependency-injection;.net10</PackageTags>
     <PackageIcon>native-source-generator.png</PackageIcon>
+    <PackageReadmeFile>README.md</PackageReadmeFile>
   </PropertyGroup>
 
   <ItemGroup>
