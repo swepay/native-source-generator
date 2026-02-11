@@ -3,7 +3,7 @@
   <PropertyGroup>
     <PackageId>Native.SourceGenerator.DependencyInjection</PackageId>
     <Description>AOT-first source generator for dependency injection. Generates constructors and service registrations without reflection.</Description>
-    <Version>1.0.2</Version>
+    <Version>1.0.3</Version>
   </PropertyGroup>
 
 </Project>
